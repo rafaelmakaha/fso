@@ -45,6 +45,31 @@ void fila_insere(int valor) {
     }
 }
 
+void fila_remove(){
+    Queue *p;
+
+    if(fila_vazia()){
+        return ;
+    }
+    p = cab->inicio;
+    cab->inicio = cab->inicio->prox;
+    free(p);
+    cab->quant--;
+}
+
+void fila_print(){
+    Queue *p = cab->inicio;
+    if(cab->inicio == NULL){
+        printf("Registro vazio\n");
+    }else{
+        p = cab->inicio;
+    for(int i = 0; i != cab->quant; i++){
+      printf("%d ", p->valor);
+      p = p->prox;
+    }
+  }
+}
+
 int main(){
   // Inicia Fila e Cab
   cab = malloc(sizeof(Indexes));
@@ -55,6 +80,18 @@ int main(){
   fila_insere(1);
   fila_insere(2);
   fila_insere(3);
+
+  fila_print();
+  printf("\n");
+
+  fila_remove();
+  fila_remove();
+
+  fila_print();
+  printf("\n");
+
+  fila_remove();
+  fila_print();
 
   free(cab);
 }
