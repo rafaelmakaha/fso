@@ -10,7 +10,7 @@ int *valor_aluno;
 int acabou = 0;
 
 int TAM;
-sem_t sem1; 
+sem_t sem1;
 sem_t sem_fila;
 pthread_mutex_t lock;
 
@@ -146,9 +146,8 @@ void *runner2(void *id) {
             // caso seja o próximo da fila, é atendido
             // sem_wait(&sem_fila);
             fila_remove();
-            printf("O aluno %d está sendo atendido\n", *valor);
             sem_wait(&sem1);
-            sem_post(&sem1);
+            printf("O aluno %d está sendo atendido\n", *valor);
             // fila_print();
             // sem_post(&sem_fila);
 
@@ -157,16 +156,18 @@ void *runner2(void *id) {
             printf("O aluno %d voltou a estudar, pois a fila estava cheia\n", *valor);
             continue;
         }
-        printf("O aluno %d voltou a estudar\n", *valor);      
+        printf("O aluno %d voltou a estudar\n", *valor);
         printf("\n");
+        sem_post(&sem1);
     }
     printf("O aluno %d terminou os estudos\n", *valor);
-    
+    printf("\n");
+
     pthread_exit(0);
 }
 
 
-int main(int argc, char *argv[]){
+int main(){
     int i;
     int *a;
     pthread_t monitor;
@@ -188,7 +189,7 @@ int main(int argc, char *argv[]){
     aluno = malloc(sizeof(pthread_t) * TAM);
 
     // Cria vetor resopnsável por armazenar as ID's dos alunos
-    valor_aluno = calloc(sizeof(int), TAM); 
+    valor_aluno = calloc(sizeof(int), TAM);
 
     // Inicia os semáforos
     sem_init(&sem1, 0, 1);
@@ -210,7 +211,7 @@ int main(int argc, char *argv[]){
     }
     acabou = 1;
     pthread_join(monitor, NULL);
-    
+
     free(cab);
     free(aluno);
     return 0;
