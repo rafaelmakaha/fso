@@ -3,6 +3,7 @@
 #include<semaphore.h>
 #include<stdlib.h>
 #include <unistd.h>
+#include<time.h>
 
 int *valor_aluno;
 
@@ -11,6 +12,7 @@ int acabou = 0;
 int TAM;
 sem_t sem1; 
 sem_t sem_fila;
+pthread_mutex_t lock;
 
 // variáveis da fila
 // int *fila;
@@ -36,8 +38,16 @@ Indexes *cab;
 
 // responsável por gerar a quantidade de alunos
 int alunos(){
-    int alunos = 3 + rand() % 42;
+    srand(time(NULL));
+    int alunos = (rand() % 42);
+    alunos+=3;
     return alunos;
+}
+
+int tempo(){
+    srand(time(NULL));
+    int tempo = (rand() % 3);
+    return tempo;
 }
 
 // retorna o próximo da fila
@@ -106,14 +116,14 @@ void fila_print(){
 // ações do monitor
 void *runner(void *param){
     while(!acabou){
-        sleep(3);
+        // sleep(tempo());
         while(!fila_vazia()){
-            sem_wait(&sem1);
-            sleep(2);
-            sem_post(&sem1);
+            pthread_mutex_lock(&lock);
+            sleep(tempo());
+            pthread_mutex_unlock(&lock);
         }
-        pthread_exit(0);
     }
+    pthread_exit(0);
 }
 
 // ações dos alunos
@@ -121,31 +131,31 @@ void *runner2(void *id) {
     int cont = 0;
     int *valor = id;
     while(cont < 3){
-        sleep(1); // tempo de aluno estudando
+        sleep(tempo()); // tempo de aluno estudando
         if(!fila_cheia()){ //se a fila não estiver cheia, entra na fila. se estiver, volta a estudar
             sem_wait(&sem_fila);
             fila_insere(*valor);
             printf("O aluno %d entrou na fila\n", *valor);
-            fila_print();
+            // fila_print();
             sem_post(&sem_fila);
             while(fila_proximo() != *valor) { // lopp esperando sua vez na fila
-                sem_wait(&sem_fila);
-                printf("Esperando minha vez");
-                sem_post(&sem_fila);
+            pthread_mutex_lock(&lock);
+                // printf("Esperando minha vez");
+            pthread_mutex_unlock(&lock);
             }
-            printf("O aluno %d está sendo atendido\n", fila_proximo());
             // caso seja o próximo da fila, é atendido
             // sem_wait(&sem_fila);
+            fila_remove();
+            printf("O aluno %d está sendo atendido\n", *valor);
             sem_wait(&sem1);
             sem_post(&sem1);
-            printf("O aluno %d saiu da fila\n", fila_proximo());
-            fila_remove();
-            fila_print();
+            // fila_print();
             // sem_post(&sem_fila);
 
             cont++;
         }else{
             printf("O aluno %d voltou a estudar, pois a fila estava cheia\n", *valor);
+            continue;
         }
         printf("O aluno %d voltou a estudar\n", *valor);      
         printf("\n");
@@ -161,9 +171,11 @@ int main(int argc, char *argv[]){
     int *a;
     pthread_t monitor;
     pthread_t *aluno;
+    pthread_mutex_init(&lock,NULL);
 
-    //TAM = alunos();
-    TAM = 6;
+
+    TAM = alunos();
+    // TAM = 6;
 
     // Inicia Fila e Cab
     cab = malloc(sizeof(Indexes));
@@ -176,7 +188,7 @@ int main(int argc, char *argv[]){
     aluno = malloc(sizeof(pthread_t) * TAM);
 
     // Cria vetor resopnsável por armazenar as ID's dos alunos
-    valor_aluno = malloc(sizeof(int) * TAM); 
+    valor_aluno = calloc(sizeof(int), TAM); 
 
     // Inicia os semáforos
     sem_init(&sem1, 0, 1);
