@@ -8,7 +8,7 @@
 int *valor_aluno;
 
 int acabou = 0;
-
+int dormindo = 0;
 int TAM;
 sem_t sem1;
 sem_t sem_fila;
@@ -28,7 +28,6 @@ typedef struct Fila{
 typedef struct Cab{
     int quant;
     int capacidade;
-    struct Fila* init;
     struct Fila* inicio;
     struct Fila* fim;
 }Indexes;
@@ -47,6 +46,7 @@ int alunos(){
 int tempo(){
     srand(time(NULL));
     int tempo = (rand() % 3);
+    tempo+=1;
     return tempo;
 }
 
@@ -73,6 +73,7 @@ void fila_insere(int valor) {
     novo->prox = NULL;
 
     if(fila_cheia()){
+        free(novo);
         return ;
     }
     if(fila_vazia()){
@@ -87,15 +88,21 @@ void fila_insere(int valor) {
 }
 
 void fila_remove(){
-    Queue *p;
+    Queue *p = cab->inicio;
 
     if(fila_vazia()){
         return ;
     }
-    p = cab->inicio;
+    if(cab->inicio == cab->fim){
+        cab->inicio = NULL;
+        cab->fim = NULL;
+        cab->quant--;
+        free(p);
+        return;
+    }
     cab->inicio = cab->inicio->prox;
-    free(p);
     cab->quant--;
+    free(p);
 }
 
 void fila_print(){
@@ -105,9 +112,9 @@ void fila_print(){
         printf("Registro vazio\n");
     }else{
         p = cab->inicio;
-    for(int i = 0; i<cab->quant; i++){
-      printf("%d ", p->valor);
-      p = p->prox;
+        for(int i = 0; i < cab->quant; i++){
+            printf("%d ", p->valor);
+            p = p->prox;
     }
   }
   printf("\n");
@@ -115,13 +122,19 @@ void fila_print(){
 
 // ações do monitor
 void *runner(void *param){
+    printf("O Monitor está dormindo...\n");
     while(!acabou){
+        // if(fila_vazia())
+        //     printf("O Monitor está dormindo...\n");
+        // else
+        //     printf("Foi acordado...\n");
         // sleep(tempo());
         while(!fila_vazia()){
             pthread_mutex_lock(&lock);
             sleep(tempo());
             pthread_mutex_unlock(&lock);
         }
+        // printf("O Monitor voltou a dormir...\n");
     }
     pthread_exit(0);
 }
@@ -136,6 +149,10 @@ void *runner2(void *id) {
             sem_wait(&sem_fila);
             fila_insere(*valor);
             printf("O aluno %d entrou na fila\n", *valor);
+            if(dormindo == 0){
+                printf("O monitor foi acordado\n");
+                dormindo = 1;
+            }
             // fila_print();
             sem_post(&sem_fila);
             while(fila_proximo() != *valor) { // lopp esperando sua vez na fila
@@ -149,11 +166,13 @@ void *runner2(void *id) {
             sem_wait(&sem1);
             printf("O aluno %d está sendo atendido\n", *valor);
             // fila_print();
+            // sem_post(&sem1);
             // sem_post(&sem_fila);
 
             cont++;
         }else{
             printf("O aluno %d voltou a estudar, pois a fila estava cheia\n", *valor);
+            fila_print();
             continue;
         }
         printf("O aluno %d voltou a estudar\n", *valor);
@@ -179,7 +198,7 @@ int main(){
     // TAM = 6;
 
     // Inicia Fila e Cab
-    cab = malloc(sizeof(Indexes));
+    cab = (Indexes *)malloc(sizeof(Indexes));
     cab->inicio = NULL;
     cab->fim = NULL;
     cab->quant = 0;
@@ -210,6 +229,7 @@ int main(){
         pthread_join(aluno[i], NULL);
     }
     acabou = 1;
+    printf("O monitor voltou a dormir\n");
     pthread_join(monitor, NULL);
 
     free(cab);
